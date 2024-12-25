@@ -8,6 +8,8 @@ import Question from "./components/Question";
 import NextBtn from "./components/NextBtn";
 import Progress from "./components/Progress";
 import Finish from "./components/Finish";
+import Footer from "./components/Footer";
+import Timer from "./components/Timer";
 
 const initialState = {
   questions: [],
@@ -16,6 +18,7 @@ const initialState = {
   answer: null,
   Score: 0,
   highscore: 0,
+  secondRemain:10
 };
 function reducer(state, action) {
   switch (action.type) {
@@ -43,13 +46,15 @@ function reducer(state, action) {
           state.highscore < state.Score ? state.Score : state.highscore,
       };
     case "reset":
-      return { ...state, index: 0, answer: null, Score: 0 ,status:"ready"};
+      return { ...initialState ,highscore : state.highscore,status:"ready", questions:state.questions };
+    case "tick":
+      return {...state,secondRemain:state.secondRemain-1,status:state.secondRemain <=0 ? "finished":state.status};
     default:
       return state;
   }
 }
 function App() {
-  const [{ status, questions, index, answer, Score, highscore }, dispatch] =
+  const [{ status, questions, index, answer, Score, highscore,secondRemain }, dispatch] =
     useReducer(reducer, initialState);
   const numQuestions = questions.length;
   const maxPtn = questions.reduce((prv, cur) => prv + cur.points, 0);
@@ -84,12 +89,15 @@ function App() {
               answer={answer}
               Score={Score}
             />
-            <NextBtn
-              dispatch={dispatch}
-              answer={answer}
-              numQuestions={numQuestions}
-              index={index}
-            />
+            <Footer>
+              <Timer dispatch={dispatch} time={secondRemain} />
+              <NextBtn
+                dispatch={dispatch}
+                answer={answer}
+                numQuestions={numQuestions}
+                index={index}
+              />
+            </Footer>
           </>
         )}
         {status === "finished" && (
