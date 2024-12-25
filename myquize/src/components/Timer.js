@@ -7,8 +7,10 @@ function Timer({dispatch ,time}) {
         }, 1000);
         return () => clearInterval(id);
     },[dispatch]);
+    const min = Math.floor((time/60));
+    const sec = time - min*60 ;
   return (
-    <div className="timer"> {time}</div>
+    <div className="timer"> {min}:{sec}</div>
   )
 }
 

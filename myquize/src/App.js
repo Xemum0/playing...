@@ -10,7 +10,7 @@ import Progress from "./components/Progress";
 import Finish from "./components/Finish";
 import Footer from "./components/Footer";
 import Timer from "./components/Timer";
-
+const SEC_PER_QUESTION = 30;
 const initialState = {
   questions: [],
   status: "loading",
@@ -27,7 +27,7 @@ function reducer(state, action) {
     case "dataError":
       return { ...state, status: "error" };
     case "active":
-      return { ...state, status: "active" };
+      return { ...state, status: "active" ,secondRemain:state.questions.length*SEC_PER_QUESTION};
     case "newAnswer":
       return {
         ...state,
