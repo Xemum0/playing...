@@ -18,7 +18,7 @@ const initialState = {
   answer: null,
   Score: 0,
   highscore: 0,
-  secondRemain:10
+  secondRemain: 10,
 };
 function reducer(state, action) {
   switch (action.type) {
@@ -27,7 +27,11 @@ function reducer(state, action) {
     case "dataError":
       return { ...state, status: "error" };
     case "active":
-      return { ...state, status: "active" ,secondRemain:state.questions.length*SEC_PER_QUESTION};
+      return {
+        ...state,
+        status: "active",
+        secondRemain: state.questions.length * SEC_PER_QUESTION,
+      };
     case "newAnswer":
       return {
         ...state,
@@ -46,16 +50,27 @@ function reducer(state, action) {
           state.highscore < state.Score ? state.Score : state.highscore,
       };
     case "reset":
-      return { ...initialState ,highscore : state.highscore,status:"ready", questions:state.questions };
+      return {
+        ...initialState,
+        highscore: state.highscore,
+        status: "ready",
+        questions: state.questions,
+      };
     case "tick":
-      return {...state,secondRemain:state.secondRemain-1,status:state.secondRemain <=0 ? "finished":state.status};
+      return {
+        ...state,
+        secondRemain: state.secondRemain - 1,
+        status: state.secondRemain <= 0 ? "finished" : state.status,
+      };
     default:
       return state;
   }
 }
 function App() {
-  const [{ status, questions, index, answer, Score, highscore,secondRemain }, dispatch] =
-    useReducer(reducer, initialState);
+  const [
+    { status, questions, index, answer, Score, highscore, secondRemain },
+    dispatch,
+  ] = useReducer(reducer, initialState);
   const numQuestions = questions.length;
   const maxPtn = questions.reduce((prv, cur) => prv + cur.points, 0);
   useEffect(function () {
