@@ -1,9 +1,10 @@
 
 function App() {
   return (
-    <div>
+    
+    <h1>
       hello Traveling app
-    </div>
+    </h1>
   )
 }
 
