@@ -1,85 +1,113 @@
 import requests
 from bs4 import BeautifulSoup
-import csv
 import time
 from urllib.parse import urljoin
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import letter
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+
+def get_article_links(url):
+    headers = {'User-Agent': 'Research Bot (your@email.com)'}
+    links = []
+    try:
+        response = requests.get(url, headers=headers)
+        soup = BeautifulSoup(response.text, 'html.parser')
+        content_div = soup.find('div', {'id': 'mw-pages'})
+        if content_div:
+            links.extend([
+                a.get('href') for a in content_div.find_all('a')
+                if a.get('href', '').startswith('/wiki/')
+                and ':' not in a.get('href', '')
+            ])
+    except Exception as e:
+        print(f"Error getting links: {e}")
+    return links
 
 def scrape_wikipedia_page(url):
     headers = {'User-Agent': 'Research Bot (your@email.com)'}
     try:
         response = requests.get(url, headers=headers)
-        response.raise_for_status()
         soup = BeautifulSoup(response.text, 'html.parser')
         
+        title = soup.find(id='firstHeading')
         content = soup.find(id='mw-content-text')
-        if not content:
+        if not title or not content:
             return None
-            
-        # Extract main content
-        article_data = {
-            'Title': soup.find(id='firstHeading').get_text(strip=True),
+
+        paragraphs = content.find_all('p')
+        summary = next((p.get_text(strip=True) for p in paragraphs if p.get_text(strip=True)), '')
+
+        return {
+            'Title': title.get_text(strip=True),
             'URL': url,
-            'Summary': content.find('p', class_=lambda x: x is None).get_text(strip=True),
-            'Categories': [cat.get_text() for cat in soup.select('div#mw-normal-catlinks ul li')],
+            'Summary': summary,
             'References': len(soup.find_all('div', class_='reflist'))
         }
-        
-        # Extract links to other Wikipedia pages
-        article_data['Internal_Links'] = [
-            urljoin('https://en.wikipedia.org', a['href'])
-            for a in content.find_all('a', href=True)
-            if a['href'].startswith('/wiki/')
-            and ':' not in a['href']
-            and not a['href'].startswith('/wiki/Main_Page')
-        ]
-        
-        return article_data
-        
     except Exception as e:
-        print(f"Error scraping {url}: {e}")
+        print(f"Error scraping page {url}: {e}")
         return None
 
-def scrape_wiki_category(category_url, max_pages=10):
+def scrape_category(category_url, max_pages=10):
+    base_url = 'https://en.wikipedia.org'
     articles = []
     visited = set()
     
-    try:
-        headers = {'User-Agent': 'Research Bot (your@email.com)'}
-        response = requests.get(category_url, headers=headers)
-        soup = BeautifulSoup(response.text, 'html.parser')
-        
-        links = [
-            urljoin('https://en.wikipedia.org', a['href'])
-            for a in soup.select('div.mw-category a')
-            if ':' not in a['href']
-        ][:max_pages]
-        
-        for link in links:
-            if link not in visited:
-                print(f"Scraping: {link}")
-                article_data = scrape_wikipedia_page(link)
-                if article_data:
-                    articles.append(article_data)
-                visited.add(link)
-                time.sleep(1)  # Rate limiting
-                
-    except Exception as e:
-        print(f"Error in category scraping: {e}")
+    links = get_article_links(category_url)
+    for link in links[:max_pages]:
+        full_url = urljoin(base_url, link)
+        if full_url not in visited:
+            print(f"Scraping: {full_url}")
+            article_data = scrape_wikipedia_page(full_url)
+            if article_data:
+                articles.append(article_data)
+                visited.add(full_url)
+            time.sleep(1)
     
     return articles
 
-def save_to_csv(data, filename='wikipedia_data.csv'):
+def save_to_pdf(data, filename='wikipedia_data.pdf'):
     if not data:
+        print("No data to save")
         return
     
-    with open(filename, 'w', newline='', encoding='utf-8') as file:
-        writer = csv.DictWriter(file, fieldnames=data[0].keys())
-        writer.writeheader()
-        writer.writerows(data)
+    doc = SimpleDocTemplate(filename, pagesize=letter)
+    styles = getSampleStyleSheet()
+    elements = []
+    
+    # Add title
+    title_style = ParagraphStyle(
+        'CustomTitle',
+        parent=styles['Heading1'],
+        fontSize=24,
+        spaceAfter=30
+    )
+    elements.append(Paragraph("Wikipedia Articles", title_style))
+    elements.append(Spacer(1, 20))
+    
+    # Add articles
+    for article in data:
+        # Article title
+        elements.append(Paragraph(article['Title'], styles['Heading2']))
+        elements.append(Spacer(1, 10))
+        
+        # URL
+        elements.append(Paragraph(f"URL: {article['URL']}", styles['Normal']))
+        elements.append(Spacer(1, 10))
+        
+        # Summary
+        elements.append(Paragraph("Summary:", styles['Heading4']))
+        elements.append(Paragraph(article['Summary'], styles['Normal']))
+        elements.append(Spacer(1, 10))
+        
+        # References
+        elements.append(Paragraph(f"Number of References: {article['References']}", styles['Normal']))
+        elements.append(Spacer(1, 20))
+    
+    doc.build(elements)
+    print(f"Saved {len(data)} articles to {filename}")
 
 if __name__ == "__main__":
-    CATEGORY_URL = "https://en.wikipedia.org/wiki/Category:Programming_languages"  # Example
-    MAX_PAGES = 5
-    
-    articles = scrape_wiki_category(CATEGORY_URL, MAX_PAGES)
-    save_to_csv(articles)
+    CATEGORY_URL = "https://en.wikipedia.org/wiki/Category:Programming_languages"
+    articles = scrape_category(CATEGORY_URL, max_pages=5)
+    save_to_pdf(articles)
