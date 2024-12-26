@@ -1,11 +1,19 @@
-
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import Product from "./pages/Product";
+import Home from "./pages/Home";
+import Pricing from "./pages/Pricing";
+import PageNotFound from "./pages/PageNotFound";
 function App() {
   return (
-    
-    <h1>
-      hello Traveling app
-    </h1>
-  )
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/product" element={<Product />} />
+        <Route path="/Pricing" element={<Pricing />} />
+        <Route path="*" element= {<PageNotFound/>} />
+      </Routes>
+    </BrowserRouter>
+  );
 }
 
-export default App
+export default App;
