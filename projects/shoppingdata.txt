@@ -1,0 +1,7 @@
+1 chips 200 0
+2 noodles 200 10
+3 coola 200 0
+4 iphon 9000 20
+5 choklate 30 10
+6 pizza 40 0
+7 burger 60 00
